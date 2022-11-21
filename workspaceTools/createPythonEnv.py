@@ -10,7 +10,7 @@ try:
     ).strip().decode('ascii')
 
 except subprocess.CalledProcessError as e:
-    print("Subprocess failed with return code: ", e.returncode, " and output: ", e.output)
+    print(e.output)
     exit(1)
 
 # make an venv file if not exists

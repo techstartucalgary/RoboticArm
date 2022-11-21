@@ -5,8 +5,8 @@
 This is the repo for the RoboticArm team at Tech Start UCalgary.
 
 ## To Setup
-- After cloning the repo, you can run the setupworkspace scripts in the workspaceTools directory.
-    - This will create a python environment, and automatically install/update any necessary requirements
+
+After cloning the repo, you can run the setupworkspace scripts in the workspaceTools directory. This will create a python environment, and automatically install/update any necessary requirements
 
 ### On Windows
 - Run the .bat file
