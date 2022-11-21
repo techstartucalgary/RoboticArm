@@ -1,4 +1,4 @@
-### RoboticArm
+# RoboticArm
 
 ## About This Repo
 
