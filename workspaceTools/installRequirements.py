@@ -6,6 +6,12 @@ if not os.path.isfile("requirements.txt"):
     exit(1)
 
 cmd = "pip install -r requirements.txt"
-subprocess.check_call(
-    cmd, 
-)
+try:
+    subprocess.check_call(
+        cmd, 
+        shell=True
+    )
+
+except subprocess.CalledProcessError as e:
+    print(e.output)
+    exit(1)
