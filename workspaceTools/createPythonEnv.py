@@ -13,10 +13,16 @@ except subprocess.CalledProcessError as e:
     print(e.output)
     exit(1)
 
+if 'win32' in sys.platform:
+    venv = 'winVenv'
+
+else:
+    venv = 'linuxVenv'
+
 # make an venv file if not exists
-if not os.path.exists(os.path.join(base_dir + '/venv/')) :
-    print("Creating python env")
-    cmd = "python -m venv venv"
+if not os.path.exists(os.path.join(base_dir + '/{}/').format(venv)) :
+    print("Creating python env for {}".format(sys.platform))
+    cmd = "python -m venv " + venv
     subprocess.check_call(
         cmd,
         cwd=base_dir,
