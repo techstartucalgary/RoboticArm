@@ -1,5 +1,5 @@
 ﻿cffi==1.14
 numpy==1.23.5
 opencv-python==4.6.0.66
-pip==22.0.4
+pip==22.3.1
 setuptools==58.1.0
