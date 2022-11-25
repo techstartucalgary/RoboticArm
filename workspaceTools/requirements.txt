@@ -1,4 +1,4 @@
-﻿cffi==1.14
+﻿cffi==1.15
 numpy==1.23.5
 opencv-python==4.6.0.66
 pip==22.3.1
