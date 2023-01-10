@@ -5,11 +5,14 @@ fasteners==0.18
 glfw==2.5.5
 gym==0.19.0
 imageio==2.22.4
+lxml==4.9.2
 mujoco-py==2.1.2.14
 numpy==1.23.5
 opencv-python==4.6.0.66
 Pillow==9.3.0
 pip==22.3.1
 pycparser==2.21
+pyqt5==5.15.7
+pywavelets=1.4.1
 setuptools==65.5.1
 wheel==0.38.4

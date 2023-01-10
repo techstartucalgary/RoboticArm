@@ -1,0 +1,24 @@
+<!-- sample data for each identifier card -->
+<identifier id = 1>
+    <height> 100 </height>
+    <width> 50 </width>
+    <length> 75 </length>
+    <weight_min> 10 </weight_min>
+    <weight_max> 25 </weight_max>
+</identifier>
+
+<identifier id = 2>
+    <height> 100 </height>
+    <width> 100 </width>
+    <length> 100 </length>
+        <weight_min> 25 </weight_min>
+    <weight_max> 45 </weight_max>
+</identifier>
+
+<identifier id = 3>
+    <height> 25 </height>
+    <width> 30 </width>
+    <length> 25 </length>
+    <weight_min> 30 </weight_min>
+    <weight_max> 100 </weight_max>
+</identifier>
