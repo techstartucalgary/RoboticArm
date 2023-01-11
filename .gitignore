@@ -2,3 +2,6 @@
 venv
 winVenv
 linuxVenv
+
+# image folders
+sw/openCv/images/*
