@@ -1,6 +1,6 @@
 <mujoco model="panda scene">
 
-  <include file="panda.xml" />
+  <include file="Gen3Robotiq_3f85.xml" />
 
   <statistic center="0.3 0 0.4" extent="1" />
 

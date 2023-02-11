@@ -81,12 +81,12 @@
 
 
 	<worldbody>
-		<geom name="floor" pos="0 0 0" size="10 10 1" type="plane" rgba="1 0.83 0.61 1"
+		<!-- <geom name="floor" pos="0 0 0" size="10 10 1" type="plane" rgba="1 0.83 0.61 1"
 			material="BeigeMaterial" />
 		<geom name="wall_1" pos="0 -2.5 1" size="2.5 2.5 1" type="plane"
 			quat="0.707107 -0.707107 0 0" rgba="0.95 0.95 0.95 1" material="BeigeMaterial" />
 		<geom name="wall_2" pos="-2.5 0 1" size="2.5 2.5 1" type="plane"
-			quat="0.707107 0 0.707107 0" rgba="0.95 0.95 0.95 1" material="BeigeMaterial" />
+			quat="0.707107 0 0.707107 0" rgba="0.95 0.95 0.95 1" material="BeigeMaterial" /> -->
 
 		<body name="Base_Link" pos="0 0 0">
 			<inertial pos="-0.000648 -0.000166 0.084487" mass="1.697353"
