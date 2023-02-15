@@ -1,4 +1,4 @@
-<mujoco model="JACO3_XML_V11">
+<mujoco model="kenova_2f85">
 	<compiler angle="radian" autolimits="true" />
 	<size njmax="500" nconmax="100" />
 	<asset>
