@@ -1,9 +1,9 @@
-<mujoco model="kenova pick and place">
+<mujoco model="kenova_pick_and_place">
 
     <option timestep="0.00005">
         <flag warmstart="enable"></flag>
     </option>
-    <include file="Gen3Robotiq_3f85.xml" />
+    <include file="Gen3Robotiq_2f85.xml" />
 
 
     <visual>
