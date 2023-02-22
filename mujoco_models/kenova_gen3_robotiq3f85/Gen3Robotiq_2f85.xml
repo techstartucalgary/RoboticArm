@@ -27,8 +27,6 @@
 		<mesh name="SphericalWrist2_Link" file="gen3/SphericalWrist2_Link.stl" />
 		<mesh name="Bracelet_Link" file="gen3/Bracelet_Link.stl" />
 
-		<material name="BeigeMaterial" specular="0" shininess="0" reflectance="0"
-			rgba="0.26 0.16 0.16796875 1" emission="0" />
 	</asset>
 
 	<default>
