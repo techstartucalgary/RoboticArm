@@ -16,6 +16,11 @@ def goal_distance(goal_a, goal_b):
     d = np.linalg.norm(goal_a - goal_b, axis=-1)
     return d
 
+gym.envs.register(
+    id='Kenova_pick_and_place-v0',
+    entry_point='kenova_pick_place:KenovaPickAndPlace',
+    max_episode_steps=200,
+)
 
 class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
     metadata = {
@@ -33,7 +38,7 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
         frame_skip=1000,
         reward_type="sparse",
         target_in_the_air=True,
-        render_mode=None,
+        render_mode="human",
     ):
         utils.EzPickle.__init__(
             self, model_path, frame_skip, reward_type, target_in_the_air, render_mode
@@ -46,11 +51,7 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
             self, model_path, frame_skip, observation_space, render_mode
         )
 
-        # gym.envs.register(
-        #     id='Kenova_pick_and_place-v0',
-        #     # entry_point='gym.envs.:Kenova_',
-        #     max_episode_steps=200,
-        # )
+
 
         self.target_in_the_air = target_in_the_air
         self.reward_type = reward_type
@@ -62,6 +63,8 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
         self._initialize_target_object_bondary()
 
         self.arm_home_qpos = self.init_qpos[:15]
+
+
 
     def _sample_object_target(self):
         object = np.array(
