@@ -7,12 +7,6 @@ import gym
 from gym import error, logger, spaces
 from gym.spaces import Space
 
-try:
-    import mujoco_py
-except ImportError as e:
-    MUJOCO_PY_IMPORT_ERROR = e
-else:
-    MUJOCO_PY_IMPORT_ERROR = None
 
 try:
     import mujoco
@@ -188,7 +182,8 @@ class MujocoEnv(BaseMujocoEnv):
             raise error.DependencyNotInstalled(
                 f"{MUJOCO_IMPORT_ERROR}. (HINT: you need to install mujoco)"
             )
-        super().__init__(
+
+        super(MujocoEnv, self).__init__(
             model_path,
             frame_skip,
             observation_space,
