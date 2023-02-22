@@ -1,24 +1,33 @@
 import numpy as np
 import gym
 import mujoco
-from gym.envs.mujoco import mujoco_env, mujoco_rendering, 
+# from gym.envs.mujoco import mujoco_env
+import mujoco_env
 from gym import utils
 from gym.spaces import Box 
 from typing import Optional, Union
 
-Kenova_path = "mujoco_models\kenova_gen3_robotiq3f85\Kenova_2f85_pick_place.xml"
+Kenova_path = "Kenova_2f85_pick_place.xml"
 
 def goal_distance(goal_a, goal_b):
     assert goal_a.shape == goal_b.shape
     d = np.linalg.norm(goal_a - goal_b, axis=-1)
     return d
 
-class MujocPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle)
+class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
+    metadata = {
+        "render_modes": [
+            "human",
+            "rgb_array",
+            "depth_array",
+        ],
+        "render_fps": 20,
+    }
 
     def __init__(
         self, 
         model_path=Kenova_path, 
-        frame_skip=5,  
+        frame_skip=1000,  
         reward_type='sparse', 
         target_in_the_air=True,
         render_mode=None):
@@ -31,14 +40,15 @@ class MujocPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle)
             target_in_the_air,
             render_mode
             )
-        
+
         observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(25,), dtype=np.float64)
-        super.__init__(model_path, frame_skip, observation_space, render_mode)
+        mujoco_env.MujocoEnv.__init__(self, model_path, frame_skip, observation_space, render_mode)
 
         self.target_in_the_air = target_in_the_air
         self.reward_type = reward_type
-        self.reward_type = reward_type
-        self.distance_threshold = self.model.geom('object').size/2
+
+        # threshold is the radius of the target
+        self.distance_threshold = self.model.geom('object0').size[0]/2
         
 
         self._initialize_simulation()
@@ -57,11 +67,12 @@ class MujocPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle)
         ])
         while True:
             target = np.array([
-                np.random.uniform(*self.object_boundary['x']),
-                np.random.uniform(*self.object_boundary['y']),
-                np.random.uniform(*self.object_boundary['z'])
+                np.random.uniform(*self.target_boundary['x']),
+                np.random.uniform(*self.target_boundary['y']),
+                np.random.uniform(*self.target_boundary['z'])
             ])
-            if np.linalg.norm(self.target - self.goal_pos) > 3 * self.distance_threshold:
+            print(np.linalg.norm(target - object))
+            if np.linalg.norm(target - object) > 3 * self.distance_threshold:
                 break
         return object, target
 
@@ -69,8 +80,8 @@ class MujocPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle)
     def _initialize_target_object_bondary(self):
         table_size = self.model.geom('table').size
         table_pos = self.model.geom('table').pos
-        object_size = self.model.geom('object').size
-        target_size = self.model.geom('target0').size
+        object_size = self.model.geom('object0').size
+        target_size = self.model.site('target0').size
         
         # object boundary is the table boundary 
         self.object_boundary = {
@@ -93,16 +104,16 @@ class MujocPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle)
         
 
     def reset_model(self):
-        qpos = self.init_qpos
+        qpos = self.init_qpos.copy()
 
         obj_pos, targ_pos = self._sample_object_target()
 
         # setting object and arm
-        qpos[15:] = obj_pos + [0] * 4
+        qpos[15:] = np.concatenate([obj_pos, np.array( [0] * 4)], axis = -1)
         qpos[:15] = self.arm_home_qpos
 
         # setting target
-        self.model.site('target0').pos = targ_pos
+        self.model.site('target0').pos[:] = targ_pos
         qvel = self.init_qvel
 
 
@@ -111,6 +122,7 @@ class MujocPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle)
 
     def _get_obs(self):
         """
+        (25,)
         [7 arm joint, (7d)
         left follower, 
         right follower,
@@ -121,19 +133,19 @@ class MujocPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle)
         obs = np.concatenate([
             self.data.qpos[:7],
             self.data.qvel[:7],
-            self.data.qpos[10], # left follower joint
-            self.data.qpos[14], # right follower joint
+            self.data.qpos[10:11], # left follower joint
+            self.data.qpos[14:15], # right follower joint
             1/2 * (self.get_body_com('left_pad') + self.get_body_com('right_pad')),
             self.get_body_com('object0'),
             self.data.site('target0').xpos,
-        ])
+        ], axis = -1)
         return obs
 
     def compute_reward(self, gripper, object, target, action):
-        grip_obj_dist = goal_distance(gripper   , object)
+        grip_obj_dist = goal_distance(gripper, object)
         obj_targ_dist = goal_distance(object, target)
         action_penalty = np.sum(np.square(action))
-        is_success = ~(obj_targ_dist > self.distance_threshold)
+        is_success = (obj_targ_dist < self.distance_threshold)
         # sparse reward: return 0 when reach target, otherwise -1
         if self.reward_type == "sparse":
             reward =  (is_success).astype(np.float32) - 1
@@ -173,4 +185,3 @@ class MujocPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle)
         assert self.viewer is not None
         self.viewer.cam.trackbodyid = -1
         self.viewer.cam.distance = 4.0
-
