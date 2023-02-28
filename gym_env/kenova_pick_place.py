@@ -45,7 +45,7 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
         )
 
         observation_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(25,), dtype=np.float64
+            low=-np.inf, high=np.inf, shape=(29,), dtype=np.float64
         )
         mujoco_env.MujocoEnv.__init__(
             self, model_path, frame_skip, observation_space, render_mode
@@ -106,7 +106,7 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
             z = (target_size[2] / 2,) * 2
         # target boundary is the table boundary, the z boundary is 20 times of its size
         self.target_boundary = {
-            "x": self.object_boundary["x"],
+            "x": (-table_pos[0], table_size[0]),
             "y": self.object_boundary["y"],
             "z": z,
         }
@@ -114,14 +114,14 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
     def reset_model(self):
         qpos = self.init_qpos.copy()
 
-        obj_pos, targ_pos = self._sample_object_target()
+        self.object_pos, self.target_pos = self._sample_object_target()
 
         # setting object and arm
-        qpos[15:] = np.concatenate([obj_pos, np.array([0] * 4)], axis=-1)
+        qpos[15:] = np.concatenate([self.object_pos, np.array([0] * 4)], axis=-1)
         qpos[:15] = self.arm_home_qpos
 
         # setting target
-        self.model.site("target0").pos[:] = targ_pos
+        self.model.site("target0").pos[:] = self.target_pos
         qvel = self.init_qvel
 
         self.set_state(qpos, qvel)
@@ -129,12 +129,14 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def _get_obs(self):
         """
-        (25,)
-        [7 arm joint, (7d)
-        left follower,
-        right follower,
+        (29,)
+        7 arm joint pos, (7d)
+        7 arm joint vel, (7d)
+        left follower joint,  (1d)
+        right follower joint, (1d)
         xpos of gripper center: 1/2 * (left gripper + right gripper), (3d)
         xpos of object, (3d)
+        rotational position of object (4d)
         xpos of target, (3d)
         """
         obs = np.concatenate(
@@ -145,11 +147,12 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
                 self.data.qpos[14:15],  # right follower joint
                 1/2 *(self.get_body_com("left_pad") + self.get_body_com("right_pad")),
                 self.get_body_com("object0"),
+                self.data.qpos[-4:],
                 self.data.site("target0").xpos,
             ],
             axis=-1,
         )
-        return obs
+        return obs.copy()
 
     def compute_reward(self, gripper, object, target, action):
         grip_obj_dist = goal_distance(gripper, object)

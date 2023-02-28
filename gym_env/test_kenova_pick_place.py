@@ -11,14 +11,15 @@ if __name__ == "__main__":
     print(kpa.observation_space)
 
     kpa = RescaleAction(kpa, -1, 1)
-    print(kpa.action_space)
+
     action_space = kpa.action_space
     kpa.reset()
     print(kpa.spec.id)
 
     n_steps = 100
     for i in range(n_steps):
-        # if i % 100 == 0:
+        if i % 10 == 0:
+            kpa.reset()
         # action = kpa.action_space.sample()
         action = np.zeros(action_space.shape)
         # print(action)

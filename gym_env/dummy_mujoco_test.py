@@ -35,4 +35,6 @@ print(data.qvel)
 # print(data.body('left_follower'))
 data.site('target0').xpos = [0.8, 0,  0.2]
 print(data.site('target0'))
-print(data.ctrl)
+# print(data.ctrl)
+print(data.body('object0').xpos)
+print(data.qpos)
