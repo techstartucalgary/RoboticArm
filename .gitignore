@@ -5,3 +5,7 @@ linuxVenv
 
 # image folders
 sw/openCv/images/*
+
+# pyc files
+*.pyc
+*/__pycache__/

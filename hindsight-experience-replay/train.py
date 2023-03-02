@@ -6,13 +6,17 @@ from mpi4py import MPI
 from rl_modules.ddpg_agent import ddpg_agent
 import random
 import torch
+sys.path.append('E:\\OneDrive\\Programming\\Python\\RoboticArm\\gym_env')
+import kenova_pick_place
+
+
 
 """
 train the agent, the MPI part code is copy from openai baselines(https://github.com/openai/baselines/blob/master/baselines/her)
 
 """
 def get_env_params(env):
-    obs = env.reset()
+    obs = env.reset()[0]
     # close the environment
     params = {'obs': obs['observation'].shape[0],
             'goal': obs['desired_goal'].shape[0],
@@ -24,7 +28,7 @@ def get_env_params(env):
 
 def launch(args):
     # create the ddpg_agent
-    env = gym.make(args.env_name)
+    env = gym.make(args.env_name, render_mode = args.render_mode)
     # set random seeds for reproduce
     env.seed(args.seed + MPI.COMM_WORLD.Get_rank())
     random.seed(args.seed + MPI.COMM_WORLD.Get_rank())

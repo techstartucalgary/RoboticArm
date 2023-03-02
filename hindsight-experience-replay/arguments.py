@@ -34,7 +34,9 @@ def get_args():
     parser.add_argument('--demo-length', type=int, default=20, help='the demo length')
     parser.add_argument('--cuda', action='store_true', help='if use gpu do the acceleration')
     parser.add_argument('--num-rollouts-per-mpi', type=int, default=2, help='the rollouts per mpi')
+    parser.add_argument('--render_mode', type=str, default='human', help='render mode can only be "human", "rgb_array" or "depth_array"')
 
     args = parser.parse_args()
+    assert args.render_mode in ['human', 'rgb_array', 'depth_array'], 'render mode can only be "human", "rgb_array" or "depth_array"'
 
     return args

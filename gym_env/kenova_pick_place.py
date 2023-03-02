@@ -5,8 +5,8 @@ import mujoco
 # from gym.envs.mujoco import mujoco_env
 import mujoco_env
 from gym import utils
-from gym.spaces import Box
-from typing import Optional, Union
+from gym.spaces import Box, Dict
+from gym.utils import seeding
 
 Kenova_path = "Kenova_2f85_pick_place.xml"
 
@@ -44,13 +44,28 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
             self, model_path, frame_skip, reward_type, target_in_the_air, render_mode
         )
 
-        observation_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(25,), dtype=np.float64
+        
+        observation_space = Dict(
+            dict(
+                observation=Box(
+                    -np.inf, np.inf, shape=(29,), dtype="float64"
+                ),
+                desired_goal=Box(
+                    -np.inf, np.inf, shape=(3,), dtype="float64"
+                ),
+                achieved_goal=Box(
+                    -np.inf, np.inf, shape=(3,), dtype="float64"
+                ),
+                gripper_center=Box(
+                    -np.inf, np.inf, shape=(3,), dtype="float64"
+                )
+            )
         )
         mujoco_env.MujocoEnv.__init__(
             self, model_path, frame_skip, observation_space, render_mode
         )
 
+        self.seed()
 
 
         self.target_in_the_air = target_in_the_air
@@ -82,7 +97,6 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
                     np.random.uniform(*self.target_boundary["z"]),
                 ]
             )
-            print(np.linalg.norm(target - object))
             if np.linalg.norm(target - object) > 3 * self.distance_threshold:
                 break
         return object, target
@@ -106,7 +120,7 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
             z = (target_size[2] / 2,) * 2
         # target boundary is the table boundary, the z boundary is 20 times of its size
         self.target_boundary = {
-            "x": self.object_boundary["x"],
+            "x": (-table_pos[0], table_size[0]),
             "y": self.object_boundary["y"],
             "z": z,
         }
@@ -114,14 +128,14 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
     def reset_model(self):
         qpos = self.init_qpos.copy()
 
-        obj_pos, targ_pos = self._sample_object_target()
+        self.object_pos, self.target_pos = self._sample_object_target()
 
         # setting object and arm
-        qpos[15:] = np.concatenate([obj_pos, np.array([0] * 4)], axis=-1)
+        qpos[15:] = np.concatenate([self.object_pos, np.array([0] * 4)], axis=-1)
         qpos[:15] = self.arm_home_qpos
 
         # setting target
-        self.model.site("target0").pos[:] = targ_pos
+        self.model.site("target0").pos[:] = self.target_pos
         qvel = self.init_qvel
 
         self.set_state(qpos, qvel)
@@ -129,13 +143,19 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def _get_obs(self):
         """
-        (25,)
-        [7 arm joint, (7d)
-        left follower,
-        right follower,
-        xpos of gripper center: 1/2 * (left gripper + right gripper), (3d)
-        xpos of object, (3d)
-        xpos of target, (3d)
+        Dict(
+            obs:(29,)
+                7 arm joint pos, (7d)
+                7 arm joint vel, (7d)
+                left follower joint,  (1d)
+                right follower joint, (1d)
+                xpos of gripper center: 1/2 * (left gripper + right gripper), (3d)
+                xpos of object, (3d)
+                rotational position of object (4d)
+                xpos of target, (3d)
+            achieved_goal: (3d)
+            desired_goal: (3d)
+            )
         """
         obs = np.concatenate(
             [
@@ -145,25 +165,34 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
                 self.data.qpos[14:15],  # right follower joint
                 1/2 *(self.get_body_com("left_pad") + self.get_body_com("right_pad")),
                 self.get_body_com("object0"),
+                self.data.qpos[-4:],
                 self.data.site("target0").xpos,
             ],
             axis=-1,
         )
-        return obs
+        achieved_goal = self.get_body_com("object0")
+        desired_goal = self.data.site("target0").xpos
+        return {
+            'observation': obs.copy(),
+            'achieved_goal': achieved_goal.copy(),
+            'desired_goal' : desired_goal.copy(),
+            'gripper_center': 1/2 *(self.get_body_com("left_pad") + self.get_body_com("right_pad")),
+        }
 
-    def compute_reward(self, gripper, object, target, action):
-        grip_obj_dist = goal_distance(gripper, object)
+    def compute_reward(self, object, target, gripper,  action=None):
         obj_targ_dist = goal_distance(object, target)
-        action_penalty = np.sum(np.square(action))
         is_success = obj_targ_dist < self.distance_threshold
         # sparse reward: return 0 when reach target, otherwise -1
         if self.reward_type == "sparse":
             reward = (is_success).astype(np.float32) - 1
+            return reward, obj_targ_dist, is_success
         # sparse reward:
         else:
+            grip_obj_dist = goal_distance(gripper, object)
+            action_penalty = np.sum(np.square(action))
             reward = -obj_targ_dist - 0.5 * grip_obj_dist - 0.1 * action_penalty
 
-        return reward, obj_targ_dist, grip_obj_dist, is_success
+            return reward, obj_targ_dist, grip_obj_dist, is_success
 
     def _set_action(self, action):
         assert (
@@ -174,13 +203,28 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def step(self, action: np.ndarray):
         ob = self._get_obs()
-        gripper, obj, target = ob[16:19], ob[19:22], ob[22:]
-        (
-            reward,
-            object_target_dist,
-            gripper_object_dist,
-            is_success,
-        ) = self.compute_reward(gripper, obj, target, action)
+        gripper, obj, target = ob['gripper_center'], ob['achieved_goal'], ob['desired_goal']
+        if self.reward_type == 'sparse':
+            (   reward,
+                object_target_dist,
+                is_success,
+            ) = self.compute_reward(gripper, obj, target, action)
+            info =  dict(
+                object_target_dist=object_target_dist,
+                is_success=is_success
+            )
+        else:
+            (
+                reward,
+                object_target_dist,
+                gripper_object_dist,
+                is_success,
+            ) = self.compute_reward(gripper, obj, target, action)
+            info =  dict(
+                object_target_dist=object_target_dist,
+                gripper_object_dist=gripper_object_dist,
+                is_success=is_success
+            )
 
         self._set_action(action)
         if self.render_mode == "human":
@@ -191,13 +235,14 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
             reward,
             is_success,
             False,
-            dict(
-                object_target_dist=object_target_dist,
-                gripper_object_dist=gripper_object_dist,
-            ),
+            info
         )
 
     def viewer_setup(self):
         assert self.viewer is not None
         self.viewer.cam.trackbodyid = -1
         self.viewer.cam.distance = 4.0
+
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
