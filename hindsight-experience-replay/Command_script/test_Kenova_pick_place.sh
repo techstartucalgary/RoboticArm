@@ -1,0 +1,1 @@
+python demo.py --env-name='Kenova_pick_and_place-v0' --render_mode='human'

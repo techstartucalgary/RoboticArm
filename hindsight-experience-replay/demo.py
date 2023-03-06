@@ -3,6 +3,9 @@ from rl_modules.models import actor
 from arguments import get_args
 import gym
 import numpy as np
+import sys
+sys.path.append('..\\gym_env')
+import kenova_pick_place
 
 # process the inputs
 def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
@@ -22,7 +25,7 @@ if __name__ == '__main__':
     # create the environment
     env = gym.make(args.env_name)
     # get the env param
-    observation = env.reset()
+    observation = env.reset()[0]
     # get the environment params
     env_params = {'obs': observation['observation'].shape[0], 
                   'goal': observation['desired_goal'].shape[0], 
@@ -34,7 +37,7 @@ if __name__ == '__main__':
     actor_network.load_state_dict(model)
     actor_network.eval()
     for i in range(args.demo_length):
-        observation = env.reset()
+        observation = env.reset()[0]
         # start to do the demo
         obs = observation['observation']
         g = observation['desired_goal']
@@ -44,7 +47,8 @@ if __name__ == '__main__':
             with torch.no_grad():
                 pi = actor_network(inputs)
             action = pi.detach().numpy().squeeze()
+            print(action)
             # put actions into the environment
-            observation_new, reward, _, info = env.step(action)
+            observation_new, reward, _,_, info = env.step(action)
             obs = observation_new['observation']
         print('the episode is: {}, is success: {}'.format(i, info['is_success']))
