@@ -70,8 +70,8 @@
 			</default>
 		</default>
 		<default class="gen3">
-			<joint armature="0.1" damping="1" axis="0 0 1" range="-2.8973 2.8973" />
-			<general dyntype="none" biastype="affine" ctrlrange="-2.95 2.95" forcerange="-87 87" />
+			<joint armature="0.1" damping="1" axis="0 0 1" range="-3.14 3.14" />
+			<general dyntype="none" biastype="affine" ctrlrange="-3.14 3.14" forcerange="-87 87" />
 		</default>
 	</default>
 
@@ -315,8 +315,7 @@
 			biasprm="0 -4500 -450" ctrlrange="-2.94 2.94" forcerange="-32 32" />
 		<general class="gen3" name="actuator2" joint="joint2" gainprm="4500" biasprm="0 -4500 -450"
 			ctrlrange="-1.7628 1.7628" />
-		<general class="gen3" name="actuator3" joint="joint3" gainprm="3500" biasprm="0 -3500 -350"
-			ctrlrange="-4.2 0" />
+		<general class="gen3" name="actuator3" joint="joint3" gainprm="3500" biasprm="0 -3500 -350" />
 		<general class="gen3" name="actuator4" joint="joint4" gainprm="3500" biasprm="0 -3500 -350"
 			ctrlrange="-2.5 2.5" />
 		<general class="gen3" name="actuator5" joint="joint5" gainprm="2000" biasprm="0 -2000 -200"

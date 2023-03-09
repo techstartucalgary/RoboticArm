@@ -5,7 +5,7 @@ import gym
 
 if __name__ == "__main__":
     # kpa = KenovaPickAndPlace(render_mode=None)
-    kpa = gym.make('Kenova_pick_and_place-v0', render_mode = "rgb_array")
+    kpa = gym.make('Kenova_pick_and_place-v0', render_mode = "human")
 
     print(kpa.action_space)
     print(kpa.observation_space)
@@ -21,12 +21,11 @@ if __name__ == "__main__":
     print(kpa.seed)
     # print(kpa.spec.id)
 
-    n_steps = 19
+    n_steps = 50
     for i in range(n_steps):
-        if i % 10 == 0:
-            kpa.reset()
         # action = kpa.action_space.sample()
         action = np.zeros(action_space.shape)
+        action[3] = 0.5
         # print(action)
         obs, reward, is_success, _, info = kpa.step(action)
         kpa.render()

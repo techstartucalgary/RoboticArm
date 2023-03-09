@@ -16,6 +16,11 @@
             height="3072" />
         <material name="BeigeMaterial" specular="0" shininess="0" reflectance="0"
             rgba="0.26 0.16 0.16796875 1" emission="0" />
+        <material name="floor_mat" specular="0" shininess="0.5" reflectance="0" rgba="0.2 0.2 0.2 1"></material>
+        <material name="table_mat" specular="0" shininess="0.5" reflectance="0"
+            rgba="0.93 0.93 0.93 1"></material>
+        <material name="block_mat" specular="0" shininess="0.5" reflectance="0" rgba="0.2 0.2 0.2 1"></material>
+        <material name="puck_mat" specular="0" shininess="0.5" reflectance="0" rgba="0.2 0.2 0.2 1"></material>
     </asset>
 
     <worldbody>
@@ -34,6 +39,13 @@
                 rgba="0.2 0.9 0.2 1" mass="2" friction="0.8" priority="1" />
             <site name="object0" pos="0 0 0" size=" 0.02 0.02 0.02" rgba="1 0 0 1"
                 type="sphere"></site>
+        </body>
+
+        <body name="object1" pos="0.8 0.0 0.055">
+            <joint name="object1:joint" type="free" damping="0.01"></joint>
+            <geom size="0.02 0.02 0.02" type="box" condim="3" name="object1" material="puck_mat"
+                mass="2"></geom>
+            <site name="object1" pos="0 0 0" size="0.02 0.02 0.02" rgba="1 0 0 1" type="sphere"></site>
         </body>
 
     </worldbody>
