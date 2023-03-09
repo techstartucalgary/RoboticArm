@@ -4,7 +4,7 @@ from arguments import get_args
 import gym
 import numpy as np
 import sys
-sys.path.append('..\\gym_env')
+sys.path.append('./gym_env')
 import kenova_pick_place
 
 # process the inputs

@@ -115,9 +115,9 @@ class KenovaPickAndPlace(mujoco_env.MujocoEnv, utils.EzPickle):
         }
 
         if self.target_in_the_air:
-            z = (target_size[2] / 2, 20 * target_size[2])
+            z = (target_size[2], 20 * target_size[2])
         else:
-            z = (target_size[2] / 2,) * 2
+            z = (target_size[2],) * 2
         # target boundary is the table boundary, the z boundary is 20 times of its size
         self.target_boundary = {
             "x": (-table_pos[0], table_size[0]),
