@@ -1,0 +1,1 @@
+python pytorch-ddpg/main.py --env Kenova_pick_and_place-v0 --validate_episodes 100 --max_episode_length 2500 --ou_sigma 0.5 --debug
