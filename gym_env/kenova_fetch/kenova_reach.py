@@ -10,7 +10,7 @@ gym.envs.register(
 
     id='Kenova_reach-v0',
     entry_point='kenova_reach:KenovaReach',
-    max_episode_steps=200,
+    max_episode_steps=500,
 )
 
 class KenovaReach(KenovaFetchBase):

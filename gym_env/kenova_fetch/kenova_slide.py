@@ -10,7 +10,7 @@ gym.envs.register(
 
     id='Kenova_slide-v0',
     entry_point='kenova_slide:KenovaSlide',
-    max_episode_steps=200,
+    max_episode_steps=500,
 )
 
 class KenovaSlide(KenovaFetchBase):

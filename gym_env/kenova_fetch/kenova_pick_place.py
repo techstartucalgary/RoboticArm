@@ -10,7 +10,7 @@ gym.envs.register(
 
     id='Kenova_pick_and_place-v0',
     entry_point='kenova_pick_place:KenovaPickAndPlace',
-    max_episode_steps=200,
+    max_episode_steps=500,
 )
 
 class KenovaPickAndPlace(KenovaFetchBase):

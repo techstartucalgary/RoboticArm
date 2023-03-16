@@ -33,7 +33,7 @@ def hard_update(target, source):
     for target_param, param in zip(target.parameters(), source.parameters()):
             target_param.data.copy_(param.data)
 
-def get_output_folder(parent_dir, env_name):
+def get_output_folder(parent_dir, env_name, resume_train:bool = False):
     """Return save folder.
 
     Assumes folders in the parent_dir have suffix -run{run

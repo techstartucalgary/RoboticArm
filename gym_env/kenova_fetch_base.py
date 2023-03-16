@@ -1,12 +1,9 @@
 import numpy as np
-# import gym
-# import mujoco
-
 import mujoco_env
 from gym import utils
 from gym.spaces import Box, Dict
 from gym.utils import seeding
-
+from typing import List, Union
 
 
 
@@ -15,7 +12,7 @@ def goal_distance(goal_a, goal_b):
     d = np.linalg.norm(goal_a - goal_b, axis=-1)
     return d
 
-
+MAX_CTRL_CHANGE = np.array([0.01, 0.01, 0.02, 0.02, 0.05, 0.05, 0.05, 10])
 
 class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
     metadata = {
@@ -34,12 +31,17 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
         reward_type="sparse",
         target_in_the_air=True,
         render_mode="human",
-        has_object = True
+        has_object = True,
+        max_action_change:np.ndarray = MAX_CTRL_CHANGE
     ):
         utils.EzPickle.__init__(
             self, model_path, frame_skip, reward_type, target_in_the_air, render_mode
         )
 
+        self.max_action_change = max_action_change
+        self.target_in_the_air = target_in_the_air
+        self.reward_type = reward_type
+        self.has_object = has_object
         
         observation_space = Dict(
             dict(
@@ -63,11 +65,6 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
 
         self.seed()
 
-
-        self.target_in_the_air = target_in_the_air
-        self.reward_type = reward_type
-        self.has_object = has_object
-
         # threshold is the radius of the target
         self.distance_threshold = self.model.site("target0").size[0] / 2
 
@@ -76,7 +73,17 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
 
         self.arm_home_qpos = self.init_qpos[:15]
 
+    # override the function
+    def _set_action_space(self):
+        bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
+        bounds[:, 0] = -1
+        bounds[:, 1] = 1
 
+        low, high = bounds.T
+        self.action_space = Box(low=low, high=high, dtype=np.float32)
+        assert self.action_space.shape == self.max_action_change.shape, \
+            f"Incorrect max_action_change shape {self.max_action_change.shape} from action space shape {self.action_space.shape}"
+        return self.action_space
 
     def _sample_object(self):
         object = np.array(
@@ -115,18 +122,18 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
 
             # object boundary is the table boundary
             self.object_boundary = {
-                "x": (0, table_size[0] + table_pos[0]),
+                "x": (0 + table_size[0]/4, table_size[0] + table_pos[0]),
                 "y": (-table_size[1], table_size[1]),
                 "z": object_size[2] / 2,
             }
 
         if self.target_in_the_air:
-            z = (target_size[2], 20 * target_size[2])
+            z = (target_size[2], 40 * target_size[2])
         else:
             z = (target_size[2],) * 2
         # target boundary is the table boundary, the z boundary is 20 times of its size
         self.target_boundary = {
-            "x": (-table_pos[0], table_size[0]),
+            "x": (-table_pos[0] + table_size[0]/4, table_size[0]),
             "y": (-table_size[1], table_size[1]),
             "z": z,
         }
@@ -198,35 +205,20 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
             'gripper_center': 1/2 *(self.get_body_com("left_pad") + self.get_body_com("right_pad")),
         }
 
-    def compute_reward(self, object, target, gripper,  action=None):
-        obj_targ_dist = goal_distance(object, target)
-        is_success = obj_targ_dist < self.distance_threshold
-        # sparse reward: return 0 when reach target, otherwise -1
-        if self.reward_type == "sparse":
-            reward = (is_success).astype(np.float32) - 1
-            return reward, obj_targ_dist, is_success
-        # sparse reward:
-        else:
-            grip_obj_dist = goal_distance(gripper, object)
-            action_penalty = np.sum(np.square(action))
-            reward = -obj_targ_dist - 0.5 * grip_obj_dist - 0.1 * action_penalty
-
-            return reward, obj_targ_dist, grip_obj_dist, is_success
-    
     def compute_reward(self, reached_goal, desired_goal, gripper_center):
         d = goal_distance(desired_goal, reached_goal)
         is_success = d < self.distance_threshold
         if self.reward_type == "sparse":
-            reward = (is_success).astype(np.float32) - 1
+            reward = (is_success).astype(float) - 1
         
         # dense reward:
         else:
             if self.has_object:
                 grip_obj_dist = goal_distance(gripper_center, reached_goal)
                 obj_targ_dist = d
-                reward = -obj_targ_dist - 0.5 * grip_obj_dist
+                reward = -obj_targ_dist - 0.5 * grip_obj_dist + (is_success).astype(float)
             else:
-                reward = -d
+                reward = -d + (is_success).astype(float)
 
         return reward, is_success
 
@@ -235,14 +227,21 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
         assert (
             self.data.ctrl.shape == action.shape
         ), f"Value error: Action must have the same shape as ctrl"
-        # ctrl = self.data.ctrl + action
-        self.do_simulation(action, None)
+        # action is the change of the ctrl
+        action_ = action.copy()
+        action_ *= np.array(self.max_action_change)
+        ctrl = self.data.ctrl + action_
+        self.do_simulation(ctrl, None)
 
     def step(self, action: np.ndarray):
         ob = self._get_obs()
         gripper, reached_goal, desired_goal =\
              ob['gripper_center'], ob['achieved_goal'], ob['desired_goal']
         reward, is_success = self.compute_reward(reached_goal, desired_goal, gripper)
+        
+        # add action penalty
+        if self.reward_type:
+            reward -= 0.1* np.linalg.norm(action)
         info = dict(is_success=is_success)
 
         self._set_action(action)
