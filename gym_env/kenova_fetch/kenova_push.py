@@ -9,7 +9,7 @@ Kenova_path = "Kenova_2f85_pick_place.xml"
 gym.envs.register(
     id='Kenova_push-v0',
     entry_point='kenova_push:KenovaPush',
-    max_episode_steps=200,
+    max_episode_steps=500,
 )
 
 class KenovaPush(KenovaFetchBase):

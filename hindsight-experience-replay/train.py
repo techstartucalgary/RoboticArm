@@ -6,8 +6,8 @@ from mpi4py import MPI
 from rl_modules.ddpg_agent import ddpg_agent
 import random
 import torch
-sys.path.append('E:\\OneDrive\\Programming\\Python\\RoboticArm\\gym_env')
-import kenova_pick_place
+sys.path.append('./gym_env')
+import kenova_fetch 
 
 
 

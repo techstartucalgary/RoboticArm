@@ -13,11 +13,16 @@ from util import *
 
 import sys
 sys.path.append('./gym_env')
-from kenova_pick_place import KenovaPickAndPlace
+import kenova_fetch 
 
 # gym.undo_logger_setup()
 
-def train(num_iterations, agent, env: gym.Env,  evaluate, validate_steps, output, max_episode_length=None, debug=False):
+def train(num_iterations, agent:DDPG, env: gym.Env,  evaluate, validate_steps, output, max_episode_length=None, debug=False, resume=None):
+
+    if resume != None:
+        agent.load_weights(resume)
+        print(agent.actor)
+        print(agent.critic)
 
     agent.is_training = True
     step = episode = episode_steps = 0
@@ -47,10 +52,11 @@ def train(num_iterations, agent, env: gym.Env,  evaluate, validate_steps, output
             agent.update_policy()
         
         # [optional] evaluate
-        if evaluate is not None and validate_steps > 0 and step % validate_steps == 0:
+        if evaluate is not None and validate_steps > 0 and (step+1) % validate_steps == 0:
             policy = lambda x: agent.select_action(x, decay_epsilon=False)
             validate_reward = evaluate(env, policy, debug=False, visualize=False)
-            if debug: prYellow('[Evaluate] Step_{:07d}: mean_reward:{}'.format(step, validate_reward))
+            if debug: prYellow('[Evaluate] Step_{:07d}: mmean_reward:{:04f} last_reward:{:04f} is_success:{}'.\
+            format(step,validate_reward, reward, info['is_success']))
 
         # [optional] save intermideate model
         if step % int(num_iterations/3) == 0:
@@ -63,7 +69,8 @@ def train(num_iterations, agent, env: gym.Env,  evaluate, validate_steps, output
         observation = deepcopy(observation2)
 
         if done: # end of episode
-            if debug: prGreen('#{}: episode_reward:{} steps:{}'.format(episode,episode_reward,step))
+            if debug: prGreen('#{}: episode_reward:{:04f} last_reward:{:04f} steps:{} is_success:{}'.\
+            format(episode,episode_reward,reward, step, info['is_success']))
 
             agent.memory.append(
                 observation,
@@ -108,23 +115,21 @@ if __name__ == "__main__":
     parser.add_argument('--ou_theta', default=0.15, type=float, help='noise theta')
     parser.add_argument('--ou_sigma', default=0.2, type=float, help='noise sigma') 
     parser.add_argument('--ou_mu', default=0.0, type=float, help='noise mu') 
-    parser.add_argument('--validate_episodes', default=20, type=int, help='how many episode to perform during validate experiment')
+    parser.add_argument('--validate_episodes', default=10, type=int, help='how many episode to perform during validate experiment')
     parser.add_argument('--max_episode_length', default=500, type=int, help='')
     parser.add_argument('--validate_steps', default=2000, type=int, help='how many steps to perform a validate experiment')
-    parser.add_argument('--output', default='output', type=str, help='')
+    parser.add_argument('--output', default='pytorch-ddpg/output', type=str, help='')
     parser.add_argument('--debug', dest='debug', action='store_true')
     parser.add_argument('--init_w', default=0.003, type=float, help='') 
     parser.add_argument('--train_iter', default=200000, type=int, help='train iters each timestep')
     parser.add_argument('--epsilon', default=50000, type=int, help='linear decay of exploration policy')
     parser.add_argument('--seed', default=-1, type=int, help='')
-    parser.add_argument('--resume', default='default', type=str, help='Resuming model path for testing')
+    parser.add_argument('--resume', default='default', type=str, help='Resuming model path for training or testing')
     # parser.add_argument('--l2norm', default=0.01, type=float, help='l2 weight decay') # TODO
     # parser.add_argument('--cuda', dest='cuda', action='store_true') # TODO
 
     args = parser.parse_args()
-    args.output = get_output_folder(args.output, args.env)
-    if args.resume == 'default':
-        args.resume = 'output/{}-run0'.format(args.env)
+    par_output = args.output
 
     env = NormalizedEnv(gym.make(args.env, reward_type = 'dense'))
 
@@ -141,10 +146,18 @@ if __name__ == "__main__":
         args.validate_steps, args.output, max_episode_length=args.max_episode_length)
 
     if args.mode == 'train':
+        args.output = get_output_folder(args.output, args.env)
+        if args.resume == 'default':
+            args.resume = None
+        else:
+            args.resume = os.path.join(par_output,args.resume)
         train(args.train_iter, agent, env, evaluate, 
-            args.validate_steps, args.output, max_episode_length=args.max_episode_length, debug=args.debug)
+            args.validate_steps, args.output, max_episode_length=args.max_episode_length, debug=args.debug, resume = args.resume)
+
 
     elif args.mode == 'test':
+        if args.resume == 'default':
+            args.resume = os.path.join(par_output, '{}-run0'.format(args.env))
         test(args.validate_episodes, agent, env, evaluate, args.resume,
             visualize=True, debug=args.debug)
 

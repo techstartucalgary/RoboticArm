@@ -72,7 +72,7 @@ class DDPG(object):
         next_q_values.volatile=False
 
         target_q_batch = to_tensor(reward_batch) + \
-            self.discount*to_tensor(terminal_batch.astype(np.float))*next_q_values
+            self.discount*to_tensor(terminal_batch.astype(float))*next_q_values
 
         # Critic update
         self.critic.zero_grad()
@@ -122,8 +122,6 @@ class DDPG(object):
         return action
 
     def select_action(self, s_t, decay_epsilon=True):
-        print(type(s_t))
-        print(s_t)
         action = to_numpy(
             self.actor(to_tensor(np.array([s_t])))
         ).squeeze(0)

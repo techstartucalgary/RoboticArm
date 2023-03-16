@@ -41,13 +41,14 @@ class Evaluator(object):
                     done = True
                 
                 if visualize:
-                    env.render(mode='human')
+                    env.render()
 
                 # update
                 episode_reward += reward
                 episode_steps += 1
 
-            if debug: prYellow('[Evaluate] #Episode{}: episode_reward:{}'.format(episode,episode_reward))
+            if debug: prYellow('[Evaluate] #Episode{}: episode_reward:{} last_reward:{} is_success:{}'.\
+            format(episode,episode_reward, reward, info['is_success']))
             result.append(episode_reward)
 
         result = np.array(result).reshape(-1,1)
