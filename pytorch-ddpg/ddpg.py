@@ -13,6 +13,7 @@ from util import *
 # from ipdb import set_trace as debug
 
 criterion = nn.MSELoss()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DDPG(object):
     def __init__(self, nb_states, nb_actions, args):
@@ -27,15 +28,25 @@ class DDPG(object):
         net_cfg = {
             'hidden1':args.hidden1, 
             'hidden2':args.hidden2, 
+            'hidden3':args.hidden3,
             'init_w':args.init_w
         }
         self.actor = Actor(self.nb_states, self.nb_actions, **net_cfg)
         self.actor_target = Actor(self.nb_states, self.nb_actions, **net_cfg)
+        # self.actor_optim  = Adam(self.actor.parameters(), lr=args.prate, weight_decay=args.l2norm)
         self.actor_optim  = Adam(self.actor.parameters(), lr=args.prate)
 
         self.critic = Critic(self.nb_states, self.nb_actions, **net_cfg)
         self.critic_target = Critic(self.nb_states, self.nb_actions, **net_cfg)
+        # self.critic_optim  = Adam(self.critic.parameters(), lr=args.rate, weight_decay=args.l2norm)
         self.critic_optim  = Adam(self.critic.parameters(), lr=args.rate)
+
+        if args.cuda:
+            self.actor.to(device)
+            self.actor_target.to(device)
+            self.critic.to(device)
+            self.critic_target.to(device)
+
 
         hard_update(self.actor_target, self.actor) # Make sure target is with the same weight
         hard_update(self.critic_target, self.critic)
@@ -139,6 +150,8 @@ class DDPG(object):
         self.random_process.reset_states()
 
     def load_weights(self, output):
+        print(os.listdir(output))
+        print(os.getcwd())
         if output is None: return
 
         self.actor.load_state_dict(

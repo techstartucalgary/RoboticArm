@@ -26,9 +26,11 @@ def get_env_params(env):
     params['max_timesteps'] = env._max_episode_steps
     return params
 
+MAX_ACTION_CHANGE = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 10])
+
 def launch(args):
     # create the ddpg_agent
-    env = gym.make(args.env_name, render_mode = args.render_mode)
+    env = gym.make(args.env_name, render_mode = args.render_mode, max_action_change = MAX_ACTION_CHANGE)
     # set random seeds for reproduce
     env.seed(args.seed + MPI.COMM_WORLD.Get_rank())
     random.seed(args.seed + MPI.COMM_WORLD.Get_rank())
