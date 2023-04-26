@@ -4,8 +4,27 @@ from gym import utils
 from gym.spaces import Box, Dict
 from gym.utils import seeding
 from typing import List, Union
+import gym
 
+Kenova_path = "Kenova_2f85_reach.xml"
 
+MAX_CTRL_CHANGE = np.array([0.01, 0.01, 0.02, 0.02, 0.05, 0.05, 0.05, 10])
+MAX_CTRL_CHANGE = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 10])
+
+gym.envs.register(
+    id='Reach_stage1',
+    entry_point='kenova_fetch_fixed_reach:KenovaFetchFixedReach',
+    max_episode_steps=500,
+    kwargs = {'target_pos':[0.3, 0.4]}
+
+)
+
+gym.envs.register(
+    id='Reach_stage2',
+    entry_point='kenova_fetch_fixed_reach:KenovaFetchFixedReach',
+    max_episode_steps=500,
+    kwargs = {'target_pos':[0.3, -0.4]}
+)
 
 def goal_distance(goal_a, goal_b):
     assert goal_a.shape == goal_b.shape
@@ -14,7 +33,7 @@ def goal_distance(goal_a, goal_b):
 
 MAX_CTRL_CHANGE = np.array([0.01, 0.01, 0.02, 0.02, 0.05, 0.05, 0.05, 10])
 
-class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
+class KenovaFetchFixedReach(mujoco_env.MujocoEnv, utils.EzPickle):
     metadata = {
         "render_modes": [
             "human",
@@ -26,14 +45,16 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def __init__(
         self,
-        model_path,
+        model_path=Kenova_path,
         frame_skip=1000,
         reward_type="sparse",
-        target_in_the_air=True,
+        target_in_the_air=False,
         render_mode="human",
-        has_object = True,
+        has_object = False,
         max_action_change:np.ndarray = MAX_CTRL_CHANGE,
-        block_gripper = None
+        block_gripper = None,
+        target_pos = [0.3, 0.4],
+        init_arm_pos = "",
     ):
         utils.EzPickle.__init__(
             self, model_path, frame_skip, reward_type, target_in_the_air, render_mode
@@ -46,6 +67,7 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
         self.target_in_the_air = target_in_the_air
         self.reward_type = reward_type
         self.has_object = has_object
+        self.init_target_pos = target_pos
         
         observation_space = Dict(
             dict(
@@ -75,7 +97,15 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
         self._initialize_simulation()
         self._initialize_target_object_bondary()
 
-        self.arm_home_qpos = self.init_qpos[:15]
+        self.arm_home_qpos = self.data.qpos[:15]
+        self.init_ctrl = None
+
+        if init_arm_pos != "":
+            initial_pos = np.loadtxt(init_arm_pos)
+            assert initial_pos.shape == self.arm_home_qpos[:7].shape
+            print('Read initial position: ', initial_pos)
+            self.arm_home_qpos[:7] = initial_pos
+            self.init_ctrl = initial_pos
 
     # override the function
     def _set_action_space(self):
@@ -100,17 +130,7 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
         return object
 
     def _sample_target(self, reached):
-        np.random.seed(4)
-        while True:
-            target = np.array(
-                [
-                    np.random.uniform(*self.target_boundary["x"]),
-                    np.random.uniform(*self.target_boundary["y"]),
-                    np.random.uniform(*self.target_boundary["z"]),
-                ]
-            )
-            if np.linalg.norm(target - reached) > 3 * self.distance_threshold:
-                break
+        target = np.array([*self.init_target_pos, self.target_boundary['z'][0]])
         return target
 
     def _initialize_target_object_bondary(self):
@@ -147,27 +167,31 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
         qpos = self.init_qpos.copy()
 
         if self.has_object:
-            self.object_pos = self._sample_object()
-            self.target_pos = self._sample_target(self.object_pos)
+            object_pos = self._sample_object()
+            target_pos = self._sample_target(object_pos)
             # setting object 
             try:
-                qpos[15:] = np.concatenate([self.object_pos, np.array([0] * 4)], axis=-1)
+                qpos[15:] = np.concatenate([object_pos, np.array([0] * 4)], axis=-1)
             except IndexError as e:
                 print(e, 'No object found, set has_object as False')
                 self.has_object = False
         else:
             gripper_center = self._get_obs()['gripper_center']
-            self.target_pos = self._sample_target(gripper_center)
+            target_pos = self._sample_target(gripper_center)
 
 
         # setting arm
         qpos[:15] = self.arm_home_qpos
 
         # setting target
-        self.model.site("target0").pos[:] = self.target_pos
+        self.model.site("target0").pos[:] = target_pos
         qvel = self.init_qvel
 
         self.set_state(qpos, qvel)
+        if self.init_ctrl is not None:
+            ctrl = self.data.ctrl.copy()
+            ctrl[:7] = self.init_ctrl
+            self.do_simulation(ctrl, None)
         return self._get_obs()
 
     def _get_obs(self):
@@ -248,6 +272,8 @@ class KenovaFetchBase(mujoco_env.MujocoEnv, utils.EzPickle):
              ob['gripper_center'], ob['achieved_goal'], ob['desired_goal']
         reward, is_success = self.compute_reward(reached_goal, desired_goal, gripper)
         
+        if is_success:
+            print("Sucess, the arm qposition is: ", self.data.qpos[:15])
         # add action penalty
         if self.reward_type:
             reward -= 0.1* np.linalg.norm(action)

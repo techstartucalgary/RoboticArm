@@ -1,6 +1,6 @@
 import numpy as np
-from kenova_fetch.kenova_pick_place import KenovaPickAndPlace
 from gym.wrappers.rescale_action import RescaleAction
+import kenova_fetch_fixed_reach
 import gym
 import kenova_fetch
 
@@ -8,10 +8,11 @@ import sys,os
 print( os.path.dirname(__file__))
 if __name__ == "__main__":
     # kpa = KenovaPickAndPlace()
-    kpa = gym.make('Kenova_pick_and_place-v0', render_mode = "human", reward_type = "dense")
+    # kpa = gym.make('Kenova_pick_and_place-v0', render_mode = "human", reward_type = "dense")
     # kpa = gym.make('Kenova_slide-v0', render_mode = "human", reward_type = "dense")
     # kpa = gym.make('Kenova_push-v0', render_mode = "human", reward_type = "dense")
     # kpa = gym.make('Kenova_reach-v0', render_mode = "human", reward_type = "dense")
+    kpa = gym.make('Kenova_fixed_reach-v0')
 
     print(kpa.action_space)
     print(kpa.observation_space)
