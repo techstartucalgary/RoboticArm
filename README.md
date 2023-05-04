@@ -19,5 +19,5 @@ After cloning the repo, you can run the setupworkspace scripts in the workspaceT
         source setupworkspace.bash
         ```
 
-### Demo of AiRM Software with Kinova Gen 3 Arm:
+### Demonstration of Reinforcement Learning DDPG training on a Kinova Gen3 Arm:
 - https://www.youtube.com/watch?v=WiJtKO3sOtU&ab_channel=Naveed
