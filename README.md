@@ -19,5 +19,5 @@ After cloning the repo, you can run the setupworkspace scripts in the workspaceT
         source setupworkspace.bash
         ```
 
-### Working demo of AiRM software working using the Kinova Gen 3 Arm:
+### Demo of AiRM software working using the Kinova Gen 3 Arm:
 #### https://www.youtube.com/watch?v=WiJtKO3sOtU&ab_channel=Naveed
